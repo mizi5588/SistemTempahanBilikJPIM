@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>App Tempahan Bilik Kelas – IPGKDA</title>
+  <style>
+    :root{
+      --bg:#f7f7fb;--card:#ffffff;--text:#111827;--sub:#6b7280;--primary:#2563eb;--danger:#dc2626;--ok:#059669;--muted:#e5e7eb;--warn:#f59e0b
+    }
+    *{box-sizing:border-box}
+    body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--text)}
+    header{position:sticky;top:0;background:var(--card);border-bottom:1px solid var(--muted);z-index:50}
+    .wrap{max-width:1100px;margin:0 auto;padding:16px}
+    h1{font-size:20px;margin:0}
+    .row{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+    nav{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap}
+    .tab{padding:8px 12px;border:1px solid var(--muted);background:#fff;border-radius:10px;cursor:pointer}
+    .tab.active{background:var(--primary);color:#fff;border-color:var(--primary)}
+    main{padding:20px 0}
+    .card{background:var(--card);border:1px solid var(--muted);border-radius:16px;padding:16px}
+    label{font-weight:600}
+    input,select,textarea{width:100%;padding:10px;border:1px solid var(--muted);border-radius:10px;background:#fff}
+    .grid{display:grid;gap:12px}
+    .grid-2{grid-template-columns:repeat(2,minmax(0,1fr))}
+    .grid-3{grid-template-columns:repeat(3,minmax(0,1fr))}
+    .grid-4{grid-template-columns:repeat(4,minmax(0,1fr))}
+    @media (max-width:800px){.grid-2,.grid-3,.grid-4{grid-template-columns:1fr}}
+    button{padding:10px 14px;border-radius:10px;border:1px solid var(--muted);background:#fff;cursor:pointer}
+    .btn-primary{background:var(--primary);border-color:var(--primary);color:#fff}
+    .btn-danger{background:var(--danger);border-color:var(--danger);color:#fff}
+    .btn-ok{background:var(--ok);border-color:var(--ok);color:#fff}
+    .btn-warn{background:var(--warn);border-color:var(--warn);color:#111}
+    .btn-ghost{background:#fff}
+    .toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+    .muted{color:var(--sub)}
+    table{width:100%;border-collapse:separate;border-spacing:0}
+    th,td{padding:10px;border-bottom:1px solid var(--muted);text-align:left}
+    th{background:#fafafa}
+    .pill{display:inline-block;padding:4px 8px;border-radius:999px;border:1px solid var(--muted);font-size:12px}
+    .toast{position:fixed;right:16px;bottom:16px;background:#111827;color:#fff;padding:12px 14px;border-radius:12px;opacity:.95}
+    /* Calendar */
+    .cal-wrap{overflow:auto}
+    .cal{display:grid;grid-template-columns:80px repeat(5,1fr);border:1px solid var(--muted);border-radius:12px;background:#fff}
+    .cal .col{border-left:1px solid var(--muted)}
+    .cal .time{border-top:1px solid var(--muted);height:40px;font-size:12px;color:var(--sub);display:flex;align-items:flex-start;justify-content:flex-end;padding:2px 6px}
+    .col-header{position:sticky;top:0;background:#f9fafb;border-bottom:1px solid var(--muted);padding:8px;font-weight:700;z-index:1}
+    .slot-col{position:relative}
+    .event{position:absolute;left:6px;right:6px;border-radius:10px;padding:6px;border:1px solid var(--muted);background:#e0ecff}
+    .badge{font-size:11px;color:#111;background:#d1fae5;border:1px solid #a7f3d0;border-radius:999px;padding:2px 6px}
+    .danger{background:#fee2e2;border-color:#fecaca}
+  </style>
+</head>
+<body>
+  <header>
+    <div class="wrap">
+      <div class="row" style="justify-content:space-between">
+        <div>
+          <h1>App Tempahan Bilik Kelas</h1>
+          <div class="muted">IPGKDA · Semua pensyarah boleh melihat tempahan</div>
+        </div>
+        <div class="row">
+          <input id="currentUser" placeholder="Nama anda (untuk kebenaran edit/batal)" />
+          <button class="btn-ok" id="saveUserBtn">Simpan Nama</button>
+        </div>
+      </div>
+      <nav>
+        <button class="tab active" data-tab="dashboard">Dashboard</button>
+        <button class="tab" data-tab="new">Tempah Baru</button>
+        <button class="tab" data-tab="list">Senarai</button>
+        <button class="tab" data-tab="calendar">Kalender</button>
+        <button class="tab" data-tab="settings">Tetapan</button>
+      </nav>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <!-- DASHBOARD -->
+    <section id="tab-dashboard" class="card">
+      <div class="row" style="justify-content:space-between;align-items:flex-start">
+        <div>
+          <h2 style="margin-top:0">Ringkasan Hari Ini</h2>
+          <div class="muted" id="todayText"></div>
+        </div>
+        <div class="toolbar">
+          <button class="btn-primary" onclick="gotoTab('new')">Tempah Baru</button>
+          <button onclick="gotoTab('list')">Lihat Senarai</button>
+          <button onclick="gotoTab('calendar')">Lihat Kalender</button>
+        </div>
+      </div>
+      <div id="todayList" style="margin-top:12px"></div>
+    </section>
+
+    <!-- NEW BOOKING -->
+    <section id="tab-new" class="card" style="display:none">
+      <h2 style="margin-top:0">Borang Tempahan</h2>
+      <form id="bookingForm" class="grid grid-3">
+        <div>
+          <label for="date">Tarikh</label>
+          <input type="date" id="date" required />
+        </div>
+        <div>
+          <label for="start">Masa Mula</label>
+          <input type="time" id="start" required />
+        </div>
+        <div>
+          <label for="end">Masa Tamat</label>
+          <input type="time" id="end" required />
+        </div>
+        <div>
+          <label for="room">Bilik</label>
+          <select id="room" required></select>
+        </div>
+        <div>
+          <label for="lecturer">Nama Pensyarah</label>
+          <input type="text" id="lecturer" required />
+        </div>
+        <div>
+          <label for="subject">Mata Pelajaran</label>
+          <input type="text" id="subject" required />
+        </div>
+        <div class="grid-3" style="grid-column:1/-1">
+          <div class="grid" style="grid-template-columns:1fr">
+            <label for="notes">Catatan (opsyenal)</label>
+            <textarea id="notes" rows="3" placeholder="Keperluan khas, projek, dll"></textarea>
+          </div>
+        </div>
+        <div class="row" style="grid-column:1/-1;justify-content:flex-end;gap:8px">
+          <button type="reset" class="btn-ghost">Reset</button>
+          <button class="btn-primary" type="submit">Hantar</button>
+        </div>
+      </form>
+      <div id="formHint" class="muted" style="margin-top:8px"></div>
+    </section>
+
+    <!-- LIST -->
+    <section id="tab-list" class="card" style="display:none">
+      <div class="row" style="justify-content:space-between;align-items:flex-end">
+        <h2 style="margin:0">Senarai Tempahan</h2>
+        <div class="toolbar">
+          <input type="date" id="fDate" />
+          <select id="fRoom"></select>
+          <input type="text" id="fSearch" placeholder="Cari pensyarah/mata pelajaran" />
+          <button onclick="clearFilters()">Kosongkan</button>
+          <button onclick="exportCSV()">Eksport CSV</button>
+        </div>
+      </div>
+      <div style="overflow:auto;margin-top:8px">
+        <table id="bookingsTable">
+          <thead>
+            <tr>
+              <th>Tarikh</th>
+              <th>Masa</th>
+              <th>Bilik</th>
+              <th>Pensyarah</th>
+              <th>Mata Pelajaran</th>
+              <th>Catatan</th>
+              <th>Pemilik</th>
+              <th>Tindakan</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- CALENDAR -->
+    <section id="tab-calendar" class="card" style="display:none">
+      <div class="row" style="justify-content:space-between;align-items:center">
+        <h2 style="margin:0">Kalender Mingguan</h2>
+        <div class="toolbar">
+          <input type="date" id="calAnchor" />
+          <select id="calRoom"></select>
+          <button onclick="shiftWeek(-1)">◀ Minggu Sebelum</button>
+          <button onclick="shiftWeek(1)">Minggu Depan ▶</button>
+        </div>
+      </div>
+      <div id="calLegend" class="muted" style="margin:8px 0"></div>
+      <div class="cal-wrap">
+        <div id="calendar" class="cal"></div>
+      </div>
+    </section>
+
+    <!-- SETTINGS -->
+    <section id="tab-settings" class="card" style="display:none">
+      <h2 style="margin-top:0">Tetapan</h2>
+      <div class="grid grid-2">
+        <div>
+          <h3>Senarai Bilik</h3>
+          <p class="muted">Tambah/kemas kini bilik yang boleh ditempah. Susunan akan muncul dalam dropdown.</p>
+          <textarea id="roomsText" rows="8" placeholder="Contoh:\nA101\nA102\nB201\nMakmal Komputer 1\nMakmal Komputer 2"></textarea>
+          <div class="row" style="margin-top:8px;justify-content:flex-end">
+            <button class="btn-primary" onclick="saveRooms()">Simpan Bilik</button>
+          </div>
+        </div>
+        <div>
+          <h3>Sandaran Data</h3>
+          <div class="row">
+            <button onclick="backupJSON()">Muat Turun JSON</button>
+            <label class="pill">Import JSON
+              <input type="file" id="importFile" accept="application/json" style="display:none" />
+            </label>
+          </div>
+          <p class="muted">Data disimpan dalam pelayar (localStorage). Untuk kegunaan bersama, hoskan fail ini di pelayan/kongsi satu URL pada semua pensyarah.</p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <div id="toast" class="toast" style="display:none"></div>
+
+  <script>
+    // ===== Utilities =====
+    const $ = (q,root=document)=>root.querySelector(q);
+    const $$ = (q,root=document)=>Array.from(root.querySelectorAll(q));
+
+    const STORAGE_KEY = 'ipg_room_bookings_v1';
+    const ROOMS_KEY   = 'ipg_room_list_v1';
+    const USER_KEY    = 'ipg_current_user_v1';
+
+    const defaultRooms = ['A101','A102','B201','B202','Dewan Besar','Makmal Komputer 1','Makmal Komputer 2'];
+
+    function loadBookings(){
+      try{ return JSON.parse(localStorage.getItem(STORAGE_KEY)||'[]'); }catch(e){ return [] }
+    }
+    function saveBookings(arr){ localStorage.setItem(STORAGE_KEY, JSON.stringify(arr)); }
+    function loadRooms(){
+      try{ const r = JSON.parse(localStorage.getItem(ROOMS_KEY)||'null');
+        return Array.isArray(r)&&r.length? r : defaultRooms;
+      }catch(e){ return defaultRooms }
+    }
+    function saveRoomsList(list){ localStorage.setItem(ROOMS_KEY, JSON.stringify(list)); }
+
+    function showToast(msg, ms=2200){ const t=$('#toast'); t.textContent=msg; t.style.display='block'; setTimeout(()=>t.style.display='none', ms); }
+
+    function fmtTime(t){ return t?.slice(0,5)||'' }
+    function fmtDate(d){ const dt=new Date(d+'T00:00:00'); return dt.toLocaleDateString('ms-MY',{weekday:'short',day:'2-digit',month:'short',year:'numeric'}) }
+
+    function overlap(aStart,aEnd,bStart,bEnd){
+      // Strings "HH:MM" -> minutes
+      const toMin = s=>{const [H,M]=s.split(':').map(Number);return H*60+M};
+      const A1=toMin(aStart), A2=toMin(aEnd), B1=toMin(bStart), B2=toMin(bEnd);
+      return A1 < B2 && B1 < A2; // strict overlap
+    }
+
+    function uid(){ return Math.random().toString(36).slice(2)+Date.now().toString(36) }
+
+    // ===== State =====
+    let bookings = loadBookings();
+    let rooms = loadRooms();
+
+    // ===== Tabs =====
+    function gotoTab(name){
+      $$('.tab').forEach(b=>b.classList.toggle('active', b.dataset.tab===name));
+      $$('main section').forEach(s=>s.style.display='none');
+      $('#tab-'+name).style.display='block';
+      if(name==='dashboard') renderDashboard();
+      if(name==='list') renderTable();
+      if(name==='calendar') renderCalendar();
+      if(name==='new') presetForm();
+      if(name==='settings') renderSettings();
+      history.replaceState({},'',`#${name}`);
+    }
+
+    // ===== User Identity =====
+    function initUser(){
+      const u = localStorage.getItem(USER_KEY)||''; $('#currentUser').value = u; $('#lecturer').value = u;
+      $('#saveUserBtn').onclick = ()=>{ const name=$('#currentUser').value.trim(); localStorage.setItem(USER_KEY,name); $('#lecturer').value=name; showToast('Nama disimpan.'); renderTable(); renderCalendar(); };
+    }
+
+    // ===== Rooms UI fill =====
+    function fillRoomSelects(){
+      const options = rooms.map(r=>`<option value="${r}">${r}</option>`).join('');
+      $('#room').innerHTML = `<option value="" disabled selected>Pilih bilik</option>`+options;
+      $('#fRoom').innerHTML = `<option value="">Semua bilik</option>`+options;
+      $('#calRoom').innerHTML = `<option value="">Semua bilik</option>`+options;
+    }
+
+    // ===== Dashboard =====
+    function renderDashboard(){
+      const today = new Date();
+      const str = today.toLocaleDateString('ms-MY',{weekday:'long',day:'2-digit',month:'long',year:'numeric'});
+      $('#todayText').textContent = str;
+      const yyyy = today.getFullYear(), mm=('0'+(today.getMonth()+1)).slice(-2), dd=('0'+today.getDate()).slice(-2);
+      const dkey = `${yyyy}-${mm}-${dd}`;
+      const list = bookings.filter(b=>b.date===dkey).sort((a,b)=>a.startTime.localeCompare(b.startTime));
+      const wrap = $('#todayList');
+      if(!list.length){ wrap.innerHTML = `<p class="muted">Tiada tempahan untuk hari ini.</p>`; return }
+      wrap.innerHTML = list.map(b=>
+        `<div class="card" style="margin:8px 0">
+          <div class="row" style="justify-content:space-between">
+            <div>
+              <div><strong>${b.subject}</strong> <span class="pill">${b.room}</span></div>
+              <div class="muted">${fmtDate(b.date)} · ${fmtTime(b.startTime)}–${fmtTime(b.endTime)} · ${b.lecturerName}</div>
+            </div>
+            <div>${actionButtonsHTML(b)}</div>
+          </div>
+        </div>`
+      ).join('');
+    }
+
+    // ===== Form =====
+    function presetForm(){
+      const now = new Date();
+      const yyyy = now.getFullYear(); const mm=('0'+(now.getMonth()+1)).slice(-2); const dd=('0'+now.getDate()).slice(-2);
+      $('#date').value = `${yyyy}-${mm}-${dd}`;
+      const hh=('0'+now.getHours()).slice(-2); const plus = ('0'+(now.getMinutes()>30?0:30)).slice(-2); // round to :00 or :30
+      $('#start').value = `${hh}:${plus}`;
+      $('#end').value = `${('0'+(now.getHours()+1)).slice(-2)}:${plus}`;
+      $('#subject').focus();
+      $('#formHint').textContent = 'Nota: Pastikan masa tamat lebih lewat daripada masa mula. Konflik masa akan ditolak.';
+    }
+
+    $('#bookingForm').addEventListener('submit', e=>{
+      e.preventDefault();
+      const item = collectForm();
+      if(!item) return;
+      // Conflict check
+      const conflicts = bookings.some(b=> b.room===item.room && b.date===item.date && overlap(b.startTime,b.endTime,item.startTime,item.endTime));
+      if(conflicts){ showToast('Pertindihan masa ditemui. Sila pilih masa lain.',3000); return }
+      bookings.push(item); saveBookings(bookings); showToast('Tempahan berjaya disimpan');
+      e.target.reset(); presetForm(); renderTable(); renderCalendar(); renderDashboard();
+    });
+
+    function collectForm(editId=null){
+      const date=$('#date').value, start=$('#start').value, end=$('#end').value, room=$('#room').value, lecturer=$('#lecturer').value.trim(), subject=$('#subject').value.trim(), notes=$('#notes').value.trim();
+      if(!date||!start||!end||!room||!lecturer||!subject){ showToast('Sila lengkapkan semua medan wajib.',2200); return null }
+      if(end<=start){ showToast('Masa tamat mesti lebih lewat daripada masa mula.',2500); return null }
+      const createdBy = localStorage.getItem(USER_KEY)||lecturer;
+      return { id: editId||uid(), date, startTime:start, endTime:end, room, lecturerName:lecturer, subject, notes, createdBy, createdAt:new Date().toISOString(), updatedAt:new Date().toISOString() };
+    }
+
+    // ===== List/Table =====
+    function actionButtonsHTML(b){
+      const me = localStorage.getItem(USER_KEY)||'';
+      const can = me && me===b.createdBy;
+      return can ? `<button onclick="editBooking('${b.id}')">Edit</button> <button class=btn-danger onclick="deleteBooking('${b.id}')">Batal</button>` : `<span class="muted">Hanya pemilik boleh edit/batal</span>`;
+    }
+
+    function renderTable(){
+      const tbody = $('#bookingsTable tbody');
+      const df = $('#fDate').value; const rr=$('#fRoom').value; const q=($('#fSearch').value||'').toLowerCase();
+      let rows = bookings.slice();
+      if(df) rows = rows.filter(b=>b.date===df);
+      if(rr) rows = rows.filter(b=>b.room===rr);
+      if(q) rows = rows.filter(b=> (b.lecturerName+b.subject).toLowerCase().includes(q));
+      rows.sort((a,b)=> (a.date+a.startTime).localeCompare(b.date+b.startTime));
+      tbody.innerHTML = rows.map(b=>
+        `<tr>
+          <td>${fmtDate(b.date)}</td>
+          <td>${fmtTime(b.startTime)}–${fmtTime(b.endTime)}</td>
+          <td><span class="pill">${b.room}</span></td>
+          <td>${b.lecturerName}</td>
+          <td>${b.subject}</td>
+          <td>${b.notes||''}</td>
+          <td><span class="badge">${b.createdBy}</span></td>
+          <td>${actionButtonsHTML(b)}</td>
+        </tr>`
+      ).join('');
+    }
+
+    $('#fDate').addEventListener('change', renderTable);
+    $('#fRoom').addEventListener('change', renderTable);
+    $('#fSearch').addEventListener('input', renderTable);
+
+    function clearFilters(){ $('#fDate').value=''; $('#fRoom').value=''; $('#fSearch').value=''; renderTable(); }
+
+    function exportCSV(){
+      const header = ['id','date','startTime','endTime','room','lecturerName','subject','notes','createdBy','createdAt','updatedAt'];
+      const lines = [header.join(',')].concat(bookings.map(b=> header.map(k=>`"${String(b[k]??'').replaceAll('"','""')}"`).join(',')));
+      const blob = new Blob([lines.join('\n')],{type:'text/csv'});
+      const a = document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='tempahan-bilik.csv'; a.click(); URL.revokeObjectURL(a.href);
+    }
+
+    // Edit/Delete
+    function editBooking(id){
+      const b = bookings.find(x=>x.id===id); if(!b) return;
+      gotoTab('new');
+      $('#date').value=b.date; $('#start').value=b.startTime; $('#end').value=b.endTime; $('#room').value=b.room; $('#lecturer').value=b.lecturerName; $('#subject').value=b.subject; $('#notes').value=b.notes||'';
+      $('#formHint').innerHTML = `<span class="badge">Mod Edit</span> Anda sedang mengemas kini tempahan.`;
+      // Replace submit handler temporarily
+      const form = $('#bookingForm');
+      const newHandler = function(e){
+        e.preventDefault();
+        const item = collectForm(id); if(!item) return;
+        // Conflict check excluding self
+        const conflicts = bookings.some(x=> x.id!==id && x.room===item.room && x.date===item.date && overlap(x.startTime,x.endTime,item.startTime,item.endTime));
+        if(conflicts){ showToast('Pertindihan masa ditemui. Sila pilih masa lain.',3000); return }
+        const idx = bookings.findIndex(x=>x.id===id); item.createdAt = bookings[idx].createdAt; bookings[idx]=item; saveBookings(bookings); showToast('Tempahan dikemas kini'); renderTable(); renderCalendar(); renderDashboard(); form.removeEventListener('submit', newHandler); form.addEventListener('submit', defaultSubmit, {once:true}); presetForm();
+      };
+      function defaultSubmit(ev){ ev.preventDefault(); }
+      form.addEventListener('submit', newHandler, {once:true});
+    }
+
+    function deleteBooking(id){
+      const b = bookings.find(x=>x.id===id); if(!b) return;
+      const me = localStorage.getItem(USER_KEY)||''; if(me!==b.createdBy){ showToast('Anda bukan pemilik tempahan ini.'); return }
+      if(confirm('Padam tempahan ini?')){
+        bookings = bookings.filter(x=>x.id!==id); saveBookings(bookings); showToast('Tempahan dibatalkan'); renderTable(); renderCalendar(); renderDashboard();
+      }
+    }
+
+    // ===== Calendar =====
+    function mondayOf(date){
+      const d=new Date(date); const day=(d.getDay()+6)%7; d.setDate(d.getDate()-day); d.setHours(0,0,0,0); return d;
+    }
+    function addDays(date,n){ const d=new Date(date); d.setDate(d.getDate()+n); return d }
+
+    function renderCalendar(){
+      // anchors
+      let anchor = $('#calAnchor').value; if(!anchor){ const now=new Date(); const y=now.getFullYear(), m=('0'+(now.getMonth()+1)).slice(-2), d=('0'+now.getDate()).slice(-2); anchor=`${y}-${m}-${d}`; $('#calAnchor').value=anchor }
+      const start = mondayOf(anchor+'T00:00:00');
+      const days = [0,1,2,3,4].map(i=> addDays(start,i));
+      const room = $('#calRoom').value;
+
+      const cal = $('#calendar');
+      // header row
+      const header = `<div></div>${days.map(d=>`<div class="col-header">${d.toLocaleDateString('ms-MY',{weekday:'long',day:'2-digit',month:'short'})}</div>`).join('')}`;
+      // time column (08:00–18:00) with 30-min steps
+      const times=[]; for(let h=8; h<18; h++){ times.push(`${('0'+h).slice(-2)}:00`,`$ {('0'+h).slice(-2)}:30`.replace(' ','')); } times.push('18:00');
+      const timeCol = times.map(t=>`<div class="time">${t}</div>`).join('');
+
+      cal.innerHTML = '';
+      cal.insertAdjacentHTML('beforeend', header);
+
+      // build columns
+      const minPerSlot=30; const dayStart=8*60; const dayEnd=18*60; const dayTotal=dayEnd-dayStart; const pxPerMin= (40)/(30); // 40px per slot already via CSS height
+
+      // time grid col
+      const timeColDiv = document.createElement('div');
+      timeColDiv.style.borderRight='1px solid var(--muted)';
+      timeColDiv.innerHTML = timeCol; cal.prepend(timeColDiv);
+
+      for(const d of days){
+        const dkey = d.toISOString().slice(0,10);
+        const col = document.createElement('div'); col.className='col slot-col';
+        // background slots
+        for(let m=dayStart; m<dayEnd; m+=minPerSlot){ const slot=document.createElement('div'); slot.className='time'; slot.textContent=''; col.appendChild(slot); }
+
+        // events
+        let evts = bookings.filter(b=> b.date===dkey && (!room || b.room===room));
+        // stack/position events by time
+        for(const b of evts){
+          const s = toMin(b.startTime), e = toMin(b.endTime);
+          const top = ((s - dayStart)/minPerSlot)*40 + 2; // 2px padding
+          const height = Math.max(36, ((e - s)/minPerSlot)*40 - 4);
+          const el = document.createElement('div'); el.className='event'; el.style.top=top+'px'; el.style.height=height+'px';
+          el.innerHTML = `<div style="font-weight:700">${b.subject}</div>
+                          <div class="muted" style="font-size:12px">${fmtTime(b.startTime)}–${fmtTime(b.endTime)} · ${b.room}</div>
+                          <div style="font-size:12px">${b.lecturerName}</div>`;
+          col.appendChild(el);
+        }
+        cal.appendChild(col);
+      }
+
+      // legend
+      const rangeTxt = `${days[0].toLocaleDateString('ms-MY',{day:'2-digit',month:'short'})} – ${days[4].toLocaleDateString('ms-MY',{day:'2-digit',month:'short',year:'numeric'})}`;
+      $('#calLegend').textContent = `Julat minggu: ${rangeTxt}${ room? ' · Bilik: '+room : ''}`;
+    }
+
+    function toMin(t){ const [H,M]=t.split(':').map(Number); return H*60+M }
+
+    function shiftWeek(n){
+      const a = new Date($('#calAnchor').value+'T00:00:00'); a.setDate(a.getDate()+n*7); const y=a.getFullYear(), m=('0'+(a.getMonth()+1)).slice(-2), d=('0'+a.getDate()).slice(-2); $('#calAnchor').value=`${y}-${m}-${d}`; renderCalendar();
+    }
+
+    // ===== Settings =====
+    function renderSettings(){
+      $('#roomsText').value = rooms.join('\n');
+    }
+
+    function saveRooms(){
+      const lines = $('#roomsText').value.split(/\n+/).map(s=>s.trim()).filter(Boolean);
+      rooms = lines.length? lines : defaultRooms;
+      saveRoomsList(rooms); fillRoomSelects(); showToast('Senarai bilik dikemas kini');
+    }
+
+    function backupJSON(){
+      const data = { rooms, bookings };
+      const blob = new Blob([JSON.stringify(data,null,2)], {type:'application/json'});
+      const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='sandaran-tempahan.json'; a.click(); URL.revokeObjectURL(a.href);
+    }
+
+    $('#importFile').addEventListener('change', (e)=>{
+      const file=e.target.files[0]; if(!file) return;
+      const reader=new FileReader(); reader.onload=()=>{
+        try{ const obj=JSON.parse(reader.result);
+          if(Array.isArray(obj.rooms)) rooms=obj.rooms; if(Array.isArray(obj.bookings)) bookings=obj.bookings;
+          saveRoomsList(rooms); saveBookings(bookings); fillRoomSelects(); renderTable(); renderCalendar(); renderDashboard(); showToast('Import berjaya');
+        }catch(err){ showToast('Fail tidak sah'); }
+      }; reader.readAsText(file);
+    });
+
+    // ===== Init =====
+    function init(){
+      // tabs
+      $$('.tab').forEach(btn=> btn.addEventListener('click',()=> gotoTab(btn.dataset.tab)) );
+      // selects
+      fillRoomSelects();
+      // user
+      initUser();
+      // default tab via hash
+      const hash = (location.hash||'').replace('#','');
+      gotoTab(hash || 'dashboard');
+      renderDashboard();
+    }
+
+    window.addEventListener('DOMContentLoaded', init);
+  </script>
+</body>
+</html>
