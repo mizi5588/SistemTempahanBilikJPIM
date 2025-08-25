@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>App Tempahan Bilik Makmal Bahasa – IPGKDA</title>
+  <style>
+    :root{
+      --bg:#f7f7fb;--card:#ffffff;--text:#111827;--sub:#6b7280;--primary:#2563eb;--danger:#dc2626;--ok:#059669;--muted:#e5e7eb;--warn:#f59e0b
+    }
+    *{box-sizing:border-box}
+    body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--text)}
+    header{position:sticky;top:0;background:var(--card);border-bottom:1px solid var(--muted);z-index:50}
+    .wrap{max-width:1100px;margin:0 auto;padding:16px}
+    h1{font-size:20px;margin:0}
+    .row{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+    nav{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap}
+    .tab{padding:8px 12px;border:1px solid var(--muted);background:#fff;border-radius:10px;cursor:pointer}
+    .tab.active{background:var(--primary);color:#fff;border-color:var(--primary)}
+    main{padding:20px 0}
+    .card{background:var(--card);border:1px solid var(--muted);border-radius:16px;padding:16px}
+    label{font-weight:600}
+    input,textarea{width:100%;padding:10px;border:1px solid var(--muted);border-radius:10px;background:#fff}
+    .grid{display:grid;gap:12px}
+    .grid-3{grid-template-columns:repeat(3,minmax(0,1fr))}
+    @media (max-width:800px){.grid-3{grid-template-columns:1fr}}
+    button{padding:10px 14px;border-radius:10px;border:1px solid var(--muted);background:#fff;cursor:pointer}
+    .btn-primary{background:var(--primary);border-color:var(--primary);color:#fff}
+    .btn-danger{background:var(--danger);border-color:var(--danger);color:#fff}
+    .btn-ok{background:var(--ok);border-color:var(--ok);color:#fff}
+    .btn-ghost{background:#fff}
+    .toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+    .muted{color:var(--sub)}
+    table{width:100%;border-collapse:separate;border-spacing:0}
+    th,td{padding:10px;border-bottom:1px solid var(--muted);text-align:left}
+    th{background:#fafafa}
+    .pill{display:inline-block;padding:4px 8px;border-radius:999px;border:1px solid var(--muted);font-size:12px}
+    .toast{position:fixed;right:16px;bottom:16px;background:#111827;color:#fff;padding:12px 14px;border-radius:12px;opacity:.95}
+    .cal-wrap{overflow:auto}
+    .cal{display:grid;grid-template-columns:80px repeat(5,1fr);border:1px solid var(--muted);border-radius:12px;background:#fff}
+    .cal .col{border-left:1px solid var(--muted)}
+    .cal .time{border-top:1px solid var(--muted);height:40px;font-size:12px;color:var(--sub);display:flex;align-items:flex-start;justify-content:flex-end;padding:2px 6px}
+    .col-header{position:sticky;top:0;background:#f9fafb;border-bottom:1px solid var(--muted);padding:8px;font-weight:700;z-index:1}
+    .slot-col{position:relative}
+    .event{position:absolute;left:6px;right:6px;border-radius:10px;padding:6px;border:1px solid var(--muted);background:#e0ecff}
+    .badge{font-size:11px;color:#111;background:#d1fae5;border:1px solid #a7f3d0;border-radius:999px;padding:2px 6px}
+    .danger{background:#fee2e2;border-color:#fecaca}
+  </style>
+</head>
+<body>
+  <header>
+    <div class="wrap">
+      <div class="row" style="justify-content:space-between">
+        <div>
+          <h1>App Tempahan Bilik Makmal Bahasa</h1>
+          <div class="muted">IPGKDA · Semua pensyarah boleh melihat tempahan</div>
+        </div>
+        <div class="row">
+          <input id="currentUser" placeholder="Nama anda (untuk kebenaran edit/batal)" />
+          <button class="btn-ok" id="saveUserBtn">Simpan Nama</button>
+        </div>
+      </div>
+      <nav>
+        <button class="tab active" data-tab="dashboard">Dashboard</button>
+        <button class="tab" data-tab="new">Tempah Baru</button>
+        <button class="tab" data-tab="list">Senarai</button>
+        <button class="tab" data-tab="calendar">Kalender</button>
+      </nav>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <section id="tab-dashboard" class="card">
+      <div class="row" style="justify-content:space-between;align-items:flex-start">
+        <div>
+          <h2 style="margin-top:0">Ringkasan Hari Ini</h2>
+          <div class="muted" id="todayText"></div>
+        </div>
+        <div class="toolbar">
+          <button class="btn-primary" onclick="gotoTab('new')">Tempah Baru</button>
+          <button onclick="gotoTab('list')">Lihat Senarai</button>
+          <button onclick="gotoTab('calendar')">Lihat Kalender</button>
+        </div>
+      </div>
+      <div id="todayList" style="margin-top:12px"></div>
+    </section>
+
+    <section id="tab-new" class="card" style="display:none">
+      <h2 style="margin-top:0">Borang Tempahan</h2>
+      <form id="bookingForm" class="grid grid-3">
+        <div>
+          <label for="date">Tarikh</label>
+          <input type="date" id="date" required />
+        </div>
+        <div>
+          <label for="start">Masa Mula</label>
+          <input type="time" id="start" required />
+        </div>
+        <div>
+          <label for="end">Masa Tamat</label>
+          <input type="time" id="end" required />
+        </div>
+        <div>
+          <label for="room">Bilik</label>
+          <input type="text" id="room" value="Makmal Bahasa" readonly />
+        </div>
+        <div>
+          <label for="lecturer">Nama Pensyarah</label>
+          <input type="text" id="lecturer" required />
+        </div>
+        <div>
+          <label for="subject">Mata Pelajaran</label>
+          <input type="text" id="subject" required />
+        </div>
+        <div class="grid-3" style="grid-column:1/-1">
+          <div class="grid" style="grid-template-columns:1fr">
+            <label for="notes">Catatan (opsyenal)</label>
+            <textarea id="notes" rows="3" placeholder="Keperluan khas, projek, dll"></textarea>
+          </div>
+        </div>
+        <div class="row" style="grid-column:1/-1;justify-content:flex-end;gap:8px">
+          <button type="reset" class="btn-ghost">Reset</button>
+          <button class="btn-primary" type="submit">Hantar</button>
+        </div>
+      </form>
+      <div id="formHint" class="muted" style="margin-top:8px"></div>
+    </section>
+
+    <section id="tab-list" class="card" style="display:none">
+      <div class="row" style="justify-content:space-between;align-items:flex-end">
+        <h2 style="margin:0">Senarai Tempahan</h2>
+        <div class="toolbar">
+          <input type="date" id="fDate" />
+          <input type="text" id="fSearch" placeholder="Cari pensyarah/mata pelajaran" />
+          <button onclick="clearFilters()">Kosongkan</button>
+          <button onclick="exportCSV()">Eksport CSV</button>
+        </div>
+      </div>
+      <div style="overflow:auto;margin-top:8px">
+        <table id="bookingsTable">
+          <thead>
+            <tr>
+              <th>Tarikh</th>
+              <th>Masa</th>
+              <th>Pensyarah</th>
+              <th>Mata Pelajaran</th>
+              <th>Catatan</th>
+              <th>Pemilik</th>
+              <th>Tindakan</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="tab-calendar" class="card" style="display:none">
+      <div class="row" style="justify-content:space-between;align-items:center">
+        <h2 style="margin:0">Kalender Mingguan</h2>
+        <div class="toolbar">
+          <input type="date" id="calAnchor" />
+          <button onclick="shiftWeek(-1)">◀ Minggu Sebelum</button>
+          <button onclick="shiftWeek(1)">Minggu Depan ▶</button>
+        </div>
+      </div>
+      <div id="calLegend" class="muted" style="margin:8px 0"></div>
+      <div class="cal-wrap">
+        <div id="calendar" class="cal"></div>
+      </div>
+    </section>
+  </main>
+
+  <div id="toast" class="toast" style="display:none"></div>
+
+  <script>
+    const $ = (q,root=document)=>root.querySelector(q);
+    const $$ = (q,root=document)=>Array.from(root.querySelectorAll(q));
+
+    const STORAGE_KEY = 'ipg_room_bookings_v1';
+    const USER_KEY    = 'ipg_current_user_v1';
+
+    function loadBookings(){
+      try{ return JSON.parse(localStorage.getItem(STORAGE_KEY)||'[]'); }catch(e){ return [] }
+    }
+    function saveBookings(arr){ localStorage.setItem(STORAGE_KEY, JSON.stringify(arr)); }
+
+    function showToast(msg, ms=2200){ const t=$('#toast'); t.textContent=msg; t.style.display='block'; setTimeout(()=>t.style.display='none', ms); }
+
+    function fmtTime(t){ return t?.slice(0,5)||'' }
+    function fmtDate(d){ const dt=new Date(d+'T00:00:00'); return dt.toLocaleDateString('ms-MY',{weekday:'short',day:'2-digit',month:'short',year:'numeric'}) }
+
+    function overlap(aStart,aEnd,bStart,bEnd){
+      const toMin = s=>{const [H,M]=s.split(':').map(Number);return H*60+M};
+      const A1=toMin(aStart), A2=toMin(aEnd), B1=toMin(bStart), B2=toMin(bEnd);
+      return A1 < B2 && B1 < A2;
+    }
+
+    function uid(){ return Math.random().toString(36).slice(2)+Date.now().toString(36) }
+
+    let bookings = loadBookings();
+
+    function gotoTab(name){
+      $$('.tab').forEach(b=>b.classList.toggle('active', b.dataset.tab===name));
+      $$('main section').forEach(s=>s.style.display='none');
+      $('#tab-'+name).style.display='block';
+      if(name==='dashboard') renderDashboard();
+      if(name==='list') renderTable();
+      if(name==='calendar') renderCalendar();
+      if(name==='new') presetForm();
+    }
+
+    function initUser(){
+      const u = localStorage.getItem(USER_KEY)||''; $('#currentUser').value = u; $('#lecturer').value = u;
+      $('#saveUserBtn').onclick = ()=>{ const name=$('#currentUser').value.trim(); localStorage.setItem(USER_KEY,name); $('#lecturer').value=name; showToast('Nama disimpan.'); renderTable(); renderCalendar(); };
+    }
+
+    function renderDashboard(){
+      const today = new Date();
+      const str = today.toLocaleDateString('ms-MY',{weekday:'long',day:'2-digit',month:'long',year:'numeric'});
+      $('#todayText').textContent = str;
+      const yyyy = today.getFullYear(), mm=('0'+(today.getMonth()+1)).slice(-2), dd=('0'+today.getDate()).slice(-2);
+      const dkey = `${yyyy}-${mm}-${dd}`;
+      const list = bookings.filter(b=>b.date===dkey).sort((a,b)=>a.startTime.localeCompare(b.startTime));
+      const wrap = $('#todayList');
+      if(!list.length){ wrap.innerHTML = `<p class="muted">Tiada tempahan untuk hari ini.</p>`; return }
+      wrap.innerHTML = list.map(b=>
+        `<div class="card" style="margin:8px 0">
+          <div class="row" style="justify-content:space-between">
+            <div>
+              <div><strong>${b.subject}</strong></div>
+              <div class="muted">${fmtDate(b.date)} · ${fmtTime(b.startTime)}–${fmtTime(b.endTime)} · ${b.lecturerName}</div>
+            </div>
+            <div>${actionButtonsHTML(b)}</div>
+          </div>
+        </div>`
+      ).join('');
+    }
+
+    function presetForm(){
+      const now = new Date();
+      const yyyy = now.getFullYear(); const mm=('0'+(now.getMonth()+1)).slice(-2); const dd=('0'+now.getDate()).slice(-2);
+      $('#date').value = `${yyyy}-${mm}-${dd}`;
+      const hh=('0'+now.getHours()).slice(-2); const plus = ('0'+(now.getMinutes()>30?0:30)).slice(-2);
+      $('#start').value = `${hh}:${plus}`;
+      $('#end').value = `${('0'+(now.getHours()+1)).slice(-2)}:${plus}`;
+      $('#subject').focus();
+      $('#formHint').textContent = 'Nota: Pastikan masa tamat lebih lewat daripada masa mula. Konflik masa akan ditolak.';
+    }
+
+    $('#bookingForm').addEventListener('submit', e=>{
+      e.preventDefault();
+      const item = collectForm();
+      if(!item) return;
+      const conflicts = bookings.some(b=> b.date===item.date && overlap(b.startTime,b.endTime,item.startTime,item.endTime));
+      if(conflicts){ showToast('Pertindihan masa ditemui. Sila pilih masa lain.',3000); return }
+      bookings.push(item); saveBookings(bookings); showToast('Tempahan berjaya disimpan');
+      e.target.reset(); presetForm(); renderTable(); renderCalendar(); renderDashboard();
+    });
+
+    function collectForm(editId=null){
+      const date=$('#date').value, start=$('#start').value, end=$('#end').value, lecturer=$('#lecturer').value.trim(), subject=$('#subject').value.trim(), notes=$('#notes').value.trim();
+      const room='Makmal Bahasa';
+      if(!date||!start||!end||!lecturer||!subject){ showToast('Sila lengkapkan semua medan wajib.',2200); return null }
+      if(end<=start){ showToast('Masa tamat mesti lebih lewat daripada masa mula.',2500); return null }
+      const createdBy = localStorage.getItem(USER_KEY)||lecturer;
+      return { id: editId||uid(), date, startTime:start, endTime:end, room, lecturerName:lecturer, subject, notes, createdBy, createdAt:new Date().toISOString(), updatedAt:new Date().toISOString() }
+    }
+
+    function actionButtonsHTML(b){
+      const me = localStorage.getItem(USER_KEY)||'';
+      const can = me && me===b.createdBy;
+      return can ? `<button onclick="editBooking('${b.id}')">Edit</button> <button class=btn-danger onclick="deleteBooking('${b.id}')">Batal</button>` : `<span class=\"muted\">Hanya pemilik boleh edit/batal</span>`;
+    }
+
+    function renderTable(){
+      const tbody = $('#bookingsTable tbody');
+      const df = $('#fDate
